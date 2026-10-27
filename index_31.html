@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Narco Confessions · Survey Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root{--bg:#f7f6f3;--surface:#fff;--border:#e8e5de;--text:#1a1916;--muted:#7a776e;--faint:#b8b5ad;--radius:12px;--radius-sm:6px;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;min-height:100vh;}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:20;gap:16px;flex-wrap:wrap;}
+.header-left h1{font-size:16px;font-weight:600;letter-spacing:-.01em;}
+.header-left p{font-size:12px;color:var(--muted);margin-top:2px;}
+.header-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.fg{display:flex;align-items:center;gap:6px;}
+.fg label{font-size:11px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;}
+select{font-size:12px;color:var(--text);background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:5px 24px 5px 8px;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%237a776e' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;cursor:pointer;}
+select:focus{outline:none;border-color:#888;}select:disabled{opacity:.4;cursor:default;}
+.upload-btn{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 12px;cursor:pointer;white-space:nowrap;}
+.upload-btn:hover{background:var(--bg);}
+.upload-btn svg{width:13px;height:13px;flex-shrink:0;}
+input[type=file]{display:none;}
+.resp-badge{font-size:12px;color:var(--muted);background:var(--bg);border:1px solid var(--border);border-radius:20px;padding:3px 10px;white-space:nowrap;}
+main{max-width:1200px;margin:0 auto;padding:24px 28px 60px;}
+#drop-zone{border:2px dashed var(--border);border-radius:var(--radius);padding:60px 40px;text-align:center;color:var(--muted);cursor:pointer;transition:border-color .2s,background .2s;margin-top:20px;}
+#drop-zone:hover,#drop-zone.drag-over{border-color:#888;background:var(--surface);}
+#drop-zone svg{width:32px;height:32px;margin-bottom:12px;color:var(--faint);}
+#drop-zone h2{font-size:15px;font-weight:500;color:var(--text);margin-bottom:6px;}
+#drop-zone p{font-size:13px;color:var(--muted);}
+#drop-zone .browse{color:var(--text);text-decoration:underline;cursor:pointer;}
+#state-msg{display:flex;align-items:center;justify-content:center;padding:60px 20px;color:var(--muted);font-size:14px;gap:10px;}
+.spinner{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--text);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.sh{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--faint);margin:32px 0 14px;padding-bottom:8px;border-bottom:1px solid var(--border);}
+.kpi-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:24px;}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;}
+.kpi-label{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:8px;line-height:1.4;}
+.kpi-value{font-size:30px;font-weight:600;letter-spacing:-.02em;line-height:1;}
+.kpi-sub{font-size:12px;color:var(--faint);margin-top:5px;}
+.nps-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;margin-bottom:20px;}
+.ct{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:12px;}
+.nps-bar{display:flex;height:22px;border-radius:var(--radius-sm);overflow:hidden;margin-bottom:8px;}
+.nps-seg{display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#fff;}
+.nps-legs{display:flex;justify-content:space-between;font-size:11px;}
+.gg{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;}
+.gc{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 18px 12px;display:flex;flex-direction:column;align-items:center;}
+.gl{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);align-self:flex-start;margin-bottom:4px;line-height:1.4;min-height:2.8em;display:flex;align-items:flex-end;}
+.cg{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;}
+.cc{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px 20px;}
+.cc .ct{margin-bottom:14px;}
+.og{display:grid;gap:14px;margin-bottom:14px;}
+.og-2{grid-template-columns:1fr 1fr;}
+.og-3{grid-template-columns:1fr 1fr 1fr;}
+@media(max-width:720px){.og-2,.og-3{grid-template-columns:1fr;}}
+.comc{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+.comh{padding:12px 16px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);border-bottom:1px solid var(--border);background:var(--bg);}
+.coml{max-height:300px;overflow-y:auto;}
+.comi{padding:10px 16px;font-size:13px;line-height:1.55;border-bottom:1px solid var(--border);color:var(--text);}
+.comi:last-child{border-bottom:none;}
+.last-updated{font-size:11px;color:var(--faint);text-align:right;margin-top:28px;}
+.sort-th{cursor:pointer;user-select:none;transition:background .15s;}
+.sort-th:hover{background:var(--bg);}
+
+.src-badge{font-size:11px;color:var(--muted);background:var(--bg);border:1px solid var(--border);border-radius:20px;padding:3px 10px;white-space:nowrap;}
+.note{font-size:11px;color:var(--faint);margin-top:8px;line-height:1.5;}
+.split{font-size:11px;text-align:center;margin-top:2px;line-height:1.5;color:var(--muted);}
+.ff-banner{background:#FFF6E5;border:1px solid #F1D9A6;color:#7A5410;border-radius:var(--radius);padding:10px 14px;font-size:12px;margin-bottom:16px;}
+@media(max-width:720px){header{padding:12px 16px;}main{padding:16px 16px 48px;}}
+</style>
+</head>
+<body>
+<header>
+  <div class="header-left">
+    <h1>Narco Confessions</h1>
+    <p id="dash-sub">Loading data…</p>
+  </div>
+  <div style="display:flex;gap:0;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;flex-shrink:0">
+    <button id="tab-dash" onclick="switchTab('dash')" style="padding:6px 14px;font-size:12px;font-weight:500;background:var(--text);color:var(--surface);border:none;cursor:pointer;">Dashboard</button>
+    <button id="tab-comp" onclick="switchTab('comp')" style="padding:6px 14px;font-size:12px;font-weight:500;background:var(--surface);color:var(--muted);border:none;cursor:pointer;">Compare cities</button>
+  </div>
+  <div class="header-right">
+    <div class="fg"><label>Audience</label><select id="f-aud" disabled><option value="">All</option></select></div>
+    <div class="fg"><label>Country</label><select id="f-country" disabled><option value="">All</option></select></div>
+    <div class="fg"><label>City</label><select id="f-city" disabled><option value="">All</option></select></div>
+    <span class="resp-badge" id="resp-count" style="display:none"></span>
+    <span class="src-badge" id="src-badge" style="display:none"></span>
+    <button class="upload-btn" id="refresh-btn" onclick="loadData()" style="display:none">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      Refresh data
+    </button>
+  </div>
+</header>
+<main>
+  <div id="state-msg" style="display:none"><div class="spinner"></div><span>Parsing…</span></div>
+  <div id="dashboard" style="display:none"></div>
+  <div id="comparison" style="display:none"></div>
+</main>
+<script>
+/* ── data source ─────────────────────────────────────────────
+   Live mode: in the Google Sheet, File > Share > Publish to web,
+   pick the main responses tab + "Comma-separated values (.csv)",
+   and paste that link below. Leave empty to use the embedded snapshot. */
+const SHEET_URL = "";
+const SNAPSHOT_DATE = "27 Oct 2026";
+const SNAPSHOT = [["Would you *recommend* {{hidden:p}} to your friends?","Did you attend the experience *with anyone*?","How far did you *travel* to attend {{hidden:p}}?","What is your *age*?","What *appealed to you most* about the experience?","How would you rate *the venue*?","How would you rate *the music*?","How would you rate *the lighting*?","How would you rate *the costumes*?","How would you rate *the stage decoration and props*?","How would you rate *the actors' performance*?","Could you tell us a bit more about *your rating of the actors’ performance*?","How would you rate *the script*?","Could you tell us a bit more about *your rating of the script*?","Which story was *your favourite*?","Which story was *your favourite*?.1","What did you like about {{field:0c0240df-a21d-4c90-a8df-459967201ce8}}?","Which story was *your least favourite*?","Which story was *your least favourite*?.1","Could you tell us a bit more about what you didn't like about {{field:fffd6053-1e94-449d-99b1-bac9783be295}}?","Before attending, how many of the characters featured in the experience *were you already familiar with*?","Do you think knowing the characters beforehand is *important to enjoy this experience*?","How did you feel about *the duration of the experience*?","How would you rate *the value for money of your ticket*?","How did your experience *compare to your expectations*?","What was *different from what you expected*?","How likely are you to *return to this experience*?","Almost there!\nJust 3 more questions and we're done.\n\nWhat did you *enjoy the most* about {{hidden:p}}?","And what do you think needs the *most improvement*?","How would you rate *the overall quality of the event*?","c","ct","idu","idp","p","idt","name","Submitted At","Token"],["10","*Friends*","*0-30 mins*","*25-34*","*I enjoy true crime or crime history*","4","5","5","4","5","5","","5","","","*Griselda Blanco*","Me ha encantado que tuviese parte de comedia","","*Frank Lucas*","Pablo Escobar necesita tener tripa (falsa) y aumentar un poco mas el acento colombiano. Audio de los actores un pelin mas alto :)","*I knew 2*","*Somewhat*","3","5","5","","4","La calidad de los actores y la comedia","La tripa falsa de pablo escobar y aumentar un pelin su acento y quizas un poco mas serio. Pero GRAN actor, muy gracioso","5","5","210","","787075","Narco Confessions","xxxxx","Onsite","2026-10-27 09:07:26","2wvxc3rila1igwqe2wvxefl7ibissitg"],["6","*Friends*","*0-30 mins*","*25-34*","*The live actors and performances*","3","3","3","3","3","5","","3","It wasn’t very obvious the link between the drinks and the stories, but the characters were quite fun","","*Griselda Blanco*","She was the funniest!","","*Frank Lucas*","I didn’t understand him very well","*I knew 1*","*Yes, definitely*","5","3","3","*The atmosphere wasn’t what I expected*","2","I enjoyed the interaction between actors, seemed fun, more than monologues for each character","1. The presenter should be a barman instead of both Pablo escobar + the presenter\n2. Drinks should be a tiny bit smaller. You should also present more vocally what it is (better storytelling!)\n3. The glass is too small and falls straight in the cinema chair glass holder, not the best because i ended up holding my glass all the time and couldn’t clap\n4. Add some appetizer food! Or sell some, it wasn’t clear where we could get the popcorn","3","5","210","","787075","Narco Confessions","xxxxx","Onsite","2026-10-27 09:04:43","zfk2lais0vo6gkojozfk2lag7g0h3ne8"],["6","*Partner / Spouse*","*0-30 mins*","*25-34*","*I enjoy true crime or crime history*","3","2","1","3","3","4","","3","falta contexto y detalles","","*Griselda Blanco*","","","*Pablo Escobar*","tibio","*I knew 1*","*Yes, definitely*","4","2","3","*The storytelling wasn’t what I expected*, *The experience was different from how it was described*","3","la immersive experience","el concepto, los cocktails","3","5","210","","787075","Narco Confessions","xxxxx","Onsite","2026-10-27 08:34:05","fdq33qvgyo189d9qdyzrfdq33qv5vhhz"],["6","*Friends*","*0-30 mins*","*25-34*","*It was something different to do*","5","4","4","3","3","2","The music director and pablo escobar was the same actor and you could see how he changed his jacket in the middle of the public. Also, pablo escobar s story was really superficial. And most of the time i couldnt understand the last lady","2","Because of what I said, I would ve liked more about escobar s story, how he got where he got","","*Griselda Blanco*","She did the best performance and her script was the best by far","","*Pablo Escobar*","We didnt learn much about his life","*I knew 2*","*Somewhat*","3","2","2","*The storytelling wasn’t what I expected*, *I expected to learn more about the criminal figures*, *The experience was less immersive than I expected*","2","A different plan with friends","The scripts and the drinks","3","5","210","","787075","Narco Confessions","xxxxx","Onsite","2026-10-27 07:07:47","iub6lrpvode5jdkoiusu86ky90bnmv42"],["8","*Partner / Spouse*","*30-60 mins*","*25-34*","*It was something different to do*, *I enjoy true crime or crime history*, *The immersive theatre experience*","4","4","3","5","3","5","","3","","","*Griselda Blanco*","","","*Frank Lucas*","","*I didn’t know any of them*","*Somewhat*","3","3","3","*The storytelling wasn’t what I expected*, *I expected to learn more about the criminal figures*","3","","","","5","210","","787075","Narco Confessions","xxxxx","Onsite","2026-10-27 06:01:12","e8x0donjw6lldeie8x0swqosmkuyrdf4"],["6","*Friends*","*0-30 mins*","*25-34*","*The atmosphere*, *It was something different to do*, *Spending time with friends or family*","5","5","5","5","3","4","","3","en mi opinión hay mucha mención a personas de color en contexto negativo, que puede ser algo incómodo","","*Pablo Escobar*","el actor y la historia que escogieron contar, fue la más chistosa y interactiva con la audiencia","","*Lucky Luciano*","no me gustó mucho la actriz, sobre dramatico","*I knew 2*","*Yes, definitely*","3","5","3","*The experience was less immersive than I expected*, *I expected to learn more about the criminal figures*","3","the drinks were very good, but I was wondering all the time what was in them","the performance should be more engaging, there were times where I dissociated completely","5","5","210","","787075","Narco Confessions","xxxxx","Onsite","2026-10-26 22:34:20","mp8ex6qtaq5l07a2bimp8exn8qbtowcs"],["10","*Partner / Spouse*","*30-60 mins*","*35-44*","*The immersive theatre experience*","5","4","5","5","5","5","","5","","","*Lucky Luciano*","Muy buena actriz! Tambien la que hizonde Griselda","","*Frank Lucas*","","*I knew all 4*","*Yes, definitely*","3","5","4","","5","I really enjoyed the way the performers stay in character the whole duration of the show even during the breaks this for me was very professional","The only thing i would say is when the presenter is speaking and introducing each character that the music was a little louder than their mic volume making it a little tricky to full hear him, but other than that it was pretty much perfect!","5","5","210","","787075","Narco Confessions","xxxxx","Onsite","2026-10-26 22:32:54","4vh9qyg133qq2cl72f4vh9qwibbk7cjx"],["6","*Friends*","*0-30 mins*","*25-34*","*The live actors and performances*","5","5","4","5","4","4","","4","","","*Griselda Blanco*","","","*Frank Lucas*","There should be a brief introduction to every character’s history for the ones who never heard about them. Cocktails were a 5/ too much time in between each act","*I knew 1*","*Yes, definitely*","5","3","3","*The experience was less immersive than I expected*","2","Actors are a 10 / place / I learnt sth","Timings / shorter cocktails /","4","5","210","","787075","Narco Confessions","xxxxx","Onsite","2026-10-26 22:23:57","29qua756082yvxri21fo5129qua7i1gm"],["2","*Friends*","*0-30 mins*","*25-34*","*Spending time with friends or family*","4","1","3","1","2","1","Given that the actors are performing monologues, I think they need to work on the rhythm and timing of the storytelling in order to keep us engaged. At times I don’t feel like I picked up on a lot of the stories because a lot sounded the same. I think given that it is theatre they can allow themselves to perform a bit more. They’re competing with drinks and an audience that progressively gets tipsier and that requires more engagement. I think they need a bit more pacing for the monologues and variation of the storytelling to keep us engaged. And to not be afraid to use the props and stage behind them. At times it felt like a presentation rather than a performance.","1","I think the script at times falls flat, there are things that maybe aren’t as relevant to the story and you can tell that they don’t come out of the performers mouth comfortably. I think it sometimes seemed a bit too much specially for the last monologue","","*Griselda Blanco*","Griselda was fun, she had a bit more spunk and danger to her character, which is what we hope to get from narcos.","","*Lucky Luciano*","It was very over the top acting, it took me out. I think it was a story that fell flat, specially for the ending act.","*I knew 2*","*Not really*","5","4","2","*The actors’ performances weren’t what I expected*","1","I think the cocktails and the interactive nature were fun","I think the performances definitely need work, specially balancing it all out for a cohesive narrative that is engaging to the audience.","3","5","210","","787075","Narco Confessions","xxxxx","Onsite","2026-10-26 22:17:32","qmexrd2cbcloj3qoqmeo3jg9ia6u1rms"],["7","*Friends*","*0-30 mins*","*25-34*","*It was something different to do*, *Spending time with friends or family*, *The immersive theatre experience*","5","4","4","4","4","5","","4","","","*Pablo Escobar*","I knew about the narco and the story had funny parts","","*Frank Lucas*","Did not know anything about the character and did not love the story telling","*I knew 1*","*Yes, definitely*","3","3","3","*The storytelling wasn’t what I expected*","2","","I think the lady in the pablo escobar story was too far in the back, everyone had to twist their head a lot and you couldn’t really see much. I think the lights in the Pablo Escobar story were too bright.","3","5","210","","787075","Narco Confessions","xxxxx","Onsite","2026-10-26 22:17:17","xr1q6htm1hl7q3xrjxr1q6ou8tlo1dxr"],["8","*Friends*","*0-30 mins*","*25-34*","*The live actors and performances*","3","3","3","3","3","4","","3","","","*Griselda Blanco*","","","*Frank Lucas*","","*I knew 2*","*Somewhat*","3","","3","","1","","","3","5","210","","787075","Narco Confessions","xxxxx","Onsite","2026-10-26 22:09:56","1kddnjma92i23x1kddgu0n0aofk2ylpu"],["9","*Friends*","*30-60 mins*","*25-34*","*The immersive theatre experience*, *The storytelling*, *The live actors and performances*","5","4","4","4","4","5","","5","","","*Griselda Blanco*","Actors","","*Griselda Blanco*","Nothing","*I knew 1*","*Not really*","3","3","3","Nothing","3","Actors and coctel","Nothing","4","5","210","","787075","Narco Confessions","xxxxx","Onsite","2026-10-26 22:00:19","3n3nh58ylxyih50vpbcz3n3n24rbrtle"],["10","*Partner / Spouse*","*0-30 mins*","*25-34*","*The immersive theatre experience*","5","5","5","5","5","5","","5","","","*Griselda Blanco*","","","*Pablo Escobar*","","*I knew 3*","*Not really*","5","5","2","*The experience was less immersive than I expected*","3","","","3","5","210","","787075","Narco Confessions","xxxxx","Onsite","2026-10-26 21:53:20","jf712s7j3lphweb7jf712s7gordhi9w4"],["6","*Partner / Spouse*, *Friends*","*0-30 mins*","*25-34*","*It was something different to do*","5","2","3","2","1","4","","1","I think it’s great to keep the public on their tippy toes or surprised, thinking “what’s going to happen next?” But the issue is sometimes that mixes with “wait, what happened?” Then confusion installs. \nThe presence of the “Russian” actress at the beginning made it more confusing than anything, and it was difficult to connect with the cop at first. \n\nA suggestion: make it slightly less cheery, more “dark, let me tell you about this kid” (like the cop; but carried throughout). Instead of having a sort of happy majordome, have him be the main bartender, let the characters interact with him, and with the public. He can start with “long day, (name of the character..)?” So that the characters can explain, and the entire thing can be more fluid. \nIf people come to hear about narcos of course they’ll want to laugh. (Hence the drink) But they also want to be kept in a darkish “damn that was smart” atmosphere.","","*Frank Lucas*","Most “realistic”/serious. Colombian pregnant lady was good too. Escobar not bad at all but shouldn’t change on stage","","*Lucky Luciano*","Too fake/overplayed. Too many ticks, and the fur jacket looked uncomfortable","*I knew 1*","*Not really*","3","4","3","*The storytelling wasn’t what I expected*, *I expected to learn more about the criminal figures*","2","Different, drinks,","Props on stage (more adapted to the different “ambiances”), story link","4","5","210","","787075","Narco Confessions","xxxxx","Onsite","2026-10-26 21:33:54","8ru2d0y4hclteosgsbh9i8ru2d0tsk90"],["5","*Partner / Spouse*","*0-30 mins*","","*It was something different to do*, *The storytelling*, *The atmosphere*","3","3","3","3","3","3","Pablo Escobar Gaviria nailed it!!","3","The improvisation was great!","","*Pablo Escobar*","","","*Pablo Escobar*","Last cocktail","*I knew 2*","*Yes, definitely*","3","3","3","","3","The stories","Props and extras","3","5","210","","787075","Narco Confessions","xxxxx","Onsite","2026-10-26 21:33:34","prmfuvh7p8mrn5soufxgnprmfuv2d92y"],["1","*Friends*","*0-30 mins*","*35-44*","*It was something different to do*","2","4","5","5","5","4","","1","- Too much comedy. The show made light of narcos through comedy rather than introspection.\n- cheers-ing to narcos feels strange and out of touch\n- felt like a Wikipedia article rather than an in depth story about the narco. \n- Pablo Escobar was particularly soft, with so much repertoire and potential, the expectation was high, and it was the weakest script of them all.\n- Having Pablo not be “undercover” as the MC feels like a lost opportunity. Instead we got a live wardrobe change, rather than a few minutes of Pablo introducing the last character","","*Griselda Blanco*","Only one with some introspection of the character. Still, quite soft","","*Pablo Escobar*","Expectations did not match results. The stories are very basic","*I knew 1*","*Not really*","3","1","1","*The storytelling wasn’t what I expected*, Cocktails were too sweet, not strong at all, and didn’t taste good at all","1","Immersive theatre","Cocktails, script and storytelling","1","5","210","","787075","Narco Confessions","xxxxx","Onsite","2026-10-26 21:25:33","d1anfpo17i680vomd1anfporapebvalh"],["9","*Friends*","*0-30 mins*","*25-34*","*It was something different to do*","4","4","3","3","4","4","","2","En algunos casos me pareció aburrido","","*Pablo Escobar*","La actuación, la historia, el actor","","*Frank Lucas*","Me pareció aburrida","*I knew 2*","*Yes, definitely*","3","3","3","*The experience was less immersive than I expected*","3","Doing something different with Friends","The script","3","","","","","","","","2026-10-26 21:18:07","wnlfybu65hloghaiabt4wnlfxatm2k7q"],["8","*Friends*","*0-30 mins*","*25-34*","*It was something different to do*, *The atmosphere*, *The live actors and performances*","4","2","4","3","4","5","","5","","","*Pablo Escobar*","","","*Frank Lucas*","The cocktails","*I knew 2*","*Not at all*","4","4","4","","4","the actors","the first monologue and the cocktails need to be more fun, have something original","4","5","210","","787075","Narco Confessions","xxxxx","Onsite","2026-10-26 21:15:47","xd980zy2tdtyt2ivhphxd980ceiqhln8"],["10","*Friends*","*30-60 mins*","*18-24*","*The storytelling*, *The atmosphere*, *The immersive theatre experience*","5","5","5","5","5","5","","5","","","*Griselda Blanco*","The acting and funny moments inside the true crime environment","","*Frank Lucas*","Police is not that inmersive","*I knew 1*","*Yes, definitely*","5","5","5","","5","The funny moments","ID check for minors","5","5","210","","787075","Narco Confessions","xxxxx","Onsite","2026-10-26 21:10:59","3jocbx3f85hwaw3dklucl9xy5sx8b0id"],["9","*Friends*","*30-60 mins*","*25-34*","*The live actors and performances*, *Learning about famous criminal figures*","4","3","5","4","5","5","","3","","","*Pablo Escobar*","O más comedia o más juego escénico","","*Frank Lucas*","Creo que se deberían haber aprovechado mucho más los personajes","*I knew 1*","*Yes, definitely*","4","4","3","*I expected to learn more about the criminal figures*","4","","","3","5","210","","787075","Narco Confessions","xxxxx","Onsite","2026-10-26 21:06:01","m9gxrehdgaogxeo5hhq92lmm9gxrehdh"],["8","*Friends*","*0-30 mins*","*25-34*","*Spending time with friends or family*, *The storytelling*, *The live actors and performances*","4","3","4","5","4","5","","4","","","*Pablo Escobar*","The way he tells the story. Kinda funny","","*Lucky Luciano*","Didn't really find it really interesting","*I knew 2*","*Not really*","3","4","4","","2","The way they told the stories that are not that known","There were some narcos that needs to connect moment more with the audience","4","5","210","","787075","Narco Confessions","xxxxx","Onsite","2026-10-26 21:03:47","d8za1ubknbi61ed8za1u58mjco78ejlp"],["5","*Partner / Spouse*","*0-30 mins*","*25-34*","*It was something different to do*","4","4","4","5","4","3","The accents were off for the personification of Pablo Escobar and Giselda. The first actor was great","4","","","*Frank Lucas*","I liked the Lucas story because it was more about the person itself not as much comedy or satire about the character","","*Pablo Escobar*","I felt like it was a random story. It would have been cool to hear about a actual drug trafficking event of his","*I knew 1*","*Somewhat*","3","3","3","*The storytelling wasn’t what I expected*, *I expected to learn more about the criminal figures*","3","The mocktails and timing were good. The first story and actor As good. All the actors were good actors","- didn’t get the point of the first intervención of Lucky’s side\n- Cuando vuelve el presentador después de la mujer de lucky, música muy fuerte no se distingue bien lo que dice \n- No nos sirvieron el mocktail 2, creo que faltaba una pulsera o algo para que los camareros nos ubiquiesen  \n- Que el host salga de atrás del escenario si el orchestrsaestá encima de nosotros, Es raro que suba al escenario haciendo de conductor\n- La madrina tiene más acento venezolano que colombiano \n- La transición del conductor a Pablo Escobar arruina la entrada de Escobar. Es el narco principal, debería tener grande entrada \n- Pablo Escobar no tenía nada de acento de Medellín, solo de notaría en español","3","5","210","","787075","Narco Confessions","xxxxx","Onsite","2026-10-26 21:02:36","dvj090rlim5ldvj0alees7n73m3mf5y4"],["10","*Friends*","*0-30 mins*","*25-34*","*Learning about famous criminal figures*, *The storytelling*, *The live actors and performances*","5","5","5","5","5","5","","5","","","*Pablo Escobar*","Great acting and storytelling","","*Lucky Luciano*","I think Lucky's story was the least entertaining for me","*I knew 1*","*Not really*","3","4","4","","3","The acting, interaction of the actors with the audience and the drinks that go at the end to cheer for each performance","I think it's good but I hope it's not very expensive if I recommend it to others","5","5","210","","787075","Narco Confessions","xxxxx","Onsite","2026-10-26 21:02:04","3nw3uuwojkdsqto9a3nwm9l78coserhp"],["5","*Partner / Spouse*","*30-60 mins*","*18-24*","*Spending time with friends or family*, *The immersive theatre experience*, *It was something different to do*","3","5","3","2","2","3","Sería muy bueno que fuera más inmersivo","3","","","*Griselda Blanco*","Ha sido el más inmersivo","","*Frank Lucas*","La interprecion no ha sido del todo buena y no me he terminado de meter en la historia","*I knew 1*","*Yes, definitely*","5","1","1","*The storytelling wasn’t what I expected*, *The atmosphere wasn’t what I expected*, *The experience was less immersive than I expected*","1","El cambio de vestuario tan repentino de Pablo Escobar. Cutre pero muy gracioso","El guion y no hacer tantas referencias al feminismo","2","5","210","","787075","Narco Confessions","xxxxx","Onsite","2026-10-26 21:00:06","93yyb7rd7kb8g898nur93yyutn18u94h"],["6","*Partner / Spouse*","*0-30 mins*","*25-34*","*It was something different to do*","2","3","3","4","3","4","","2","Creo que el tiempo entre escenas es muy largo, el sitio no acompaña para que sea mas rápido y la forma de servir las copas no hace que entres en la experiencia. Para pagar casi 50 euros por la experiencia se puede quedar corto, teniendo en cuenta que el primer coctel sabe a Flash. Se debería revisar el hacerlo en un sitio tan grande, creo que puede ser mas productivo en un venueu mas pequeño.","","*Lucky Luciano*","Creo que la  actriz lo exagera mas y te hace meterte mas en su historia","","*Frank Lucas*","Al final habla en tercera persona, sobre alguien que no es el y no se termina de entender que se defiende","*I knew 1*","*Yes, definitely*","3","2","2","*The storytelling wasn’t what I expected*","2","Los actores creo que son muy cercanos e intentan generar confianza con el publico :)","Los tiempos entre escenas y el sitio demasiado grande como para que el publico entre en confianza","2","5","210","","787075","Narco Confessions","xxxxx","Onsite","2026-10-26 21:00:04","h8az7gln52wueh8afixvpips8ocu29i0"],["5","*Partner / Spouse*","*30-60 mins*","*25-34*","*I enjoy true crime or crime history*, *Learning about famous criminal figures*, *Spending time with friends or family*","3","4","3","2","3","3","Expected it to be more inmersive","2","Falta de contexto de quién es cada uno y de qué hizo","","*Lucky Luciano*","Es la historia que mejor he entendido por cómo está escrito el script","","*Frank Lucas*","El guion me ha parecido muy flojo y la interpretación aún peor","*I knew 1*","*Yes, definitely*","5","1","1","*I expected to learn more about the criminal figures*, *The actors’ performances weren’t what I expected*, *The storytelling wasn’t what I expected*, *The experience was less immersive than I expected*","1","Cocktails and Jokes.\n(Third Cocktail was terrible)","Script and cast","2","5","210","","787075","Narco Confessions","xxxxx","Onsite","2026-10-26 21:00:04","gmycgwr24u2du9sdgmycgrvdmcpy9deq"],["10","*Friends*","*0-30 mins*","*25-34*","*Spending time with friends or family*, *Learning about famous criminal figures*, *The live actors and performances*","5","5","5","5","5","5","","5","","","*Griselda Blanco*","Everything","","*Frank Lucas*","I didn’t the kinda peach drink","*I knew 2*","*Somewhat*","3","5","5","","5","The actors","On the drinks","5","5","210","","787075","Narco Confessions","xxxxx","Onsite","2026-10-26 20:59:55","134vttc9qs2gr4to99ycw134vtttx4b6"],["10","*Friends*","*0-30 mins*","*25-34*","*The storytelling*, *The live actors and performances*, *The atmosphere*","5","5","5","5","5","5","","5","","","*Pablo Escobar*","The actor played it amazingly","","*Lucky Luciano*","He didn’t come","*I knew 2*","*Not really*","3","5","5","","5","All the details taken care of","The taste of the cocktels","5","5","210","","787075","Narco Confessions","xxxxx","Onsite","2026-10-26 20:58:50","85clpisfmkofjoy85clj3tzla6kfmzi9"],["8","*Partner / Spouse*, *Friends*","*0-30 mins*","*25-34*","*The live actors and performances*, *Learning about famous criminal figures*, *I enjoy true crime or crime history*","5","2","5","4","4","5","","4","","","*Lucky Luciano*","? Good storylines and acting","","*Frank Lucas*","It wasn't him directly. I was hoping to see an acting about him","*I knew 2*","*Somewhat*","5","4","3","*The experience was different from how it was described*","3","Actors","Specifying that in some stories, it not about the narco itself, but another person","4","5","210","","787075","Narco Confessions","xxxxx","Onsite","2026-10-26 20:56:35","eruei96bkjrn64ghgrleruei99n8f12q"],["4","*Partner / Spouse*","*0-30 mins*","*25-34*","*The live actors and performances*","2","3","4","4","3","5","","2","Se ensalza demasiado al Narco y se toma demasiado en serio ha si mismo. La parte más entretenida ha sido cuando bromean con la propia historia e interactúan con el público.\n\nVa mejorando pero empieza muy mal","","*Pablo Escobar*","No se tomaba demasiado en serio, era más divertida y la interacción con otro personaje la hizo mejor.","","*Frank Lucas*","No interactúa, demasiado serio y es el momento más evidente de brindar por un narco","*I knew 3*","*Not really*","4","1","2","*The storytelling wasn’t what I expected*","1","La interacción con el público","El script","2","5","210","","787075","Narco Confessions","xxxxx","Onsite","2026-10-26 20:56:34","dk2edpoohrg8yngjdk2edpilznlgcv18"],["4","*Friends*","*0-30 mins*","*25-34*","*The immersive theatre experience*","5","5","5","3","2","4","","1","I think the stories should come from the narcos itselfs and to tell stories about real operations or moments in which they were almost captured. For someone who doesn’t know about the thematic it was confusing and very little appealing, a little boring.","","*Griselda Blanco*","","","*Lucky Luciano*","It didn’t make sense. We should have heard lucky story and not a love story or his wife’s life","*I knew 1*","*Yes, definitely*","3","1","2","*The storytelling wasn’t what I expected*","2","","The storytelling","3","5","210","","787075","Narco Confessions","xxxxx","Onsite","2026-10-26 20:55:54","jn06k4dozqgw1xz5t30jn06kusbsiyl8"],["6","*By myself*","*0-30 mins*","*45-54*","*The live actors and performances*","5","5","5","5","5","5","","5","","","*Frank Lucas*","Funciona mucho si el texto es humorístico. Los actores y actrices, inmejorables","","*Frank Lucas*","Todo bien","*I knew 1*","*Not really*","5","5","5","","5","Los actores y los coctails","Más humor en los textos","5","5","210","","787075","Narco Confessions","xxxxx","Onsite","2026-10-26 20:55:24","255xwzlb6vonon72255xw4t3egbbatnx"],["10","*Friends*","*1-2 hours*","*35-44*","*The live actors and performances*","5","5","5","5","5","5","","5","","","*Lucky Luciano*","La novia de Lucky es la mejor","","*Lucky Luciano*","","*I knew all 4*","*Yes, definitely*","3","5","5","","5","","","5","5","210","","787075","Narco Confessions","xxxxx","Onsite","2026-10-26 20:54:29","svg3zfwgtjegqzz0svg3z1v842kxuu6y"],["5","*Friends*","*0-30 mins*","*18-24*","","4","3","3","4","3","4","","3","","","*Griselda Blanco*","","","*Lucky Luciano*","","*I knew 1*","*Somewhat*","3","3","2","*The storytelling wasn’t what I expected*, *The experience was less immersive than I expected*","2","","","3","5","210","","787075","Narco Confessions","xxxxx","Onsite","2026-10-26 20:54:12","nb88q5yg2i0i7akonb88wg1jytyh12ev"],["10","*Partner / Spouse*","*0-30 mins*","*25-34*","*The live actors and performances*, *The immersive theatre experience*, *It was something different to do*","4","5","5","5","5","5","","5","","","*Pablo Escobar*","The actor was brilliant and he made everyone laugh","","*Griselda Blanco*","I would like more information about her story","*I knew 2*","*Not really*","5","5","5","","5","The atmosphere, the script, the performances definetely was the absolute best part, 10/10","The cocktails are confusing. You are not supposed to drink them until the end of the speech, but then you get another one straigh away and now you've got 2 cocktails in your hand and someone asking you to hand the previous cup and you need to hurry, the new cocktail gets hot suring the next speech. I believe it's confusing, but the rest of rhe show was amazing","5","5","210","","787075","Narco Confessions","xxxxx","Onsite","2026-10-26 20:54:05","o2q59ol8klggbxyo2q4wshnwwauv5d1p"],["10","*By myself*","*30-60 mins*","","*The immersive theatre experience*","5","4","4","3","3","4","","2","It was great. At times a little dull","","*Griselda Blanco*","Mood","","*Pablo Escobar*","Prop usage and transitions between scenes","*I didn’t know any of them*","*Somewhat*","3","4","4","","5","The story","Pacing and character development","4","5","210","","787075","Narco Confessions","xxxxx","Onsite","2026-10-26 20:53:58","1u0cto1yosr770ais1usx6uatdooi73p"],["10","*Family (adult)*, *Friends*","*0-30 mins*","*35-44*","*The live actors and performances*, *The immersive theatre experience*, *I enjoy true crime or crime history*","5","5","5","5","5","5","","5","","","*Griselda Blanco*","Todo el espectáculo, la puesta en escena, la interpretación de los actores de 10, historias bien contadas y bien planteadas. La verdad ha superado mis expectativas. Felicidades para todo el equipo de este gran y maravilloso trabajo","","*Griselda Blanco*","El lugar y la actuación de los chicos espectaculares","*I knew 1*","*Not at all*","3","5","5","","5","Me gustó todo","No","5","5","210","","787075","Narco Confessions","xxxxx","Onsite","2026-10-26 20:53:43","l3mf2mz19cez9o117x8el3mf2mfe587d"],["10","*Friends*","*1-2 hours*","*55-64*","*It was something different to do*, *The live actors and performances*, *The immersive theatre experience*","5","5","5","5","5","5","","5","","","*Griselda Blanco*","Buenísimo","","*Griselda Blanco*","","*I knew all 4*","*Yes, definitely*","5","5","5","","5","Griselda","","5","5","210","","787075","Narco Confessions","xxxxx","Onsite","2026-10-26 20:53:07","l8b2ar4mbhhn8n07l8b2arjvlrozxwjf"],["8","*Friends*","*0-30 mins*","*25-34*","*The live actors and performances*, *Spending time with friends or family*, *It was something different to do*","5","5","4","3","5","4","","5","","","*Lucky Luciano*","","","*Pablo Escobar*","","*I knew 1*","*Yes, definitely*","5","4","5","","2","La actriz rusa, la mejor","El disfraz de Pablo Escobar","4","5","210","","787075","Narco Confessions","xxxxx","Onsite","2026-10-26 20:53:06","ozx1nsa7yc6azfthpgwrozx1nsaqttf7"],["10","*Friends*","*30-60 mins*","*35-44*","*The live actors and performances*, *Spending time with friends or family*, *I enjoy true crime or crime history*","5","3","3","3","4","5","","5","","","*Lucky Luciano*","The actress and the fact that it was presented in a funny way","","*Frank Lucas*","It was too serious","*I knew 1*","*Not at all*","3","5","4","","5","The live acting","I would recommend more music during the performances and in the intervals","5","5","210","","787075","Narco Confessions","xxxxx","Onsite","2026-10-26 20:52:46","7spzg28gjjj2upzvk7spzgrhvqtgu0h4"],["10","*Friends*","*0-30 mins*","*25-34*","*The live actors and performances*","5","5","5","5","5","5","","5","","","*Griselda Blanco*","Actors","","*Griselda Blanco*","","*I knew 2*","*Yes, definitely*","3","5","5","","5","","","5","5","210","","787075","Narco Confessions","xxxxx","Onsite","2026-10-26 20:52:33","4xubk380w08tbix4thb4xubk380padzp"],["5","*By myself*","*0-30 mins*","*25-34*","*It was something different to do*","3","5","5","5","5","5","","3","Much more funny.","","*Frank Lucas*","","","*Frank Lucas*","","*I knew 1*","*Not really*","5","5","5","","5","The history","I think it should be more funny","5","5","210","","787075","Narco Confessions","xxxxx","Onsite","2026-10-26 20:52:29","mu99jbhur4swy0y99fmu99jb4hmu9lpf"],["4","*Partner / Spouse*","*30-60 mins*","*25-34*","*The atmosphere*, *The immersive theatre experience*, *It was something different to do*","5","5","5","5","5","5","","1","Felt that they were romanticizing/excusing terrible people. There’s no excuse and they should get all the blame","","*Pablo Escobar*","","","*Frank Lucas*","Blaming the system ?????","*I knew 3*","*Somewhat*","3","5","2","*The storytelling wasn’t what I expected*","3","The actors performance, the drinks,","Script","4","5","210","","787075","Narco Confessions","xxxxx","Onsite","2026-10-26 20:52:17","7lw3u3dt8nc02ty4jausv7lw3u3dt8ci"],["10","*Friends*","*30-60 mins*","*25-34*","*The immersive theatre experience*, *The atmosphere*, *The live actors and performances*","5","5","5","5","5","5","","5","","","*Griselda Blanco*","All in general","","*Lucky Luciano*","Story","*I knew 1*","*Yes, definitely*","3","5","5","","3","The show","Music in the intervals","5","5","210","","787075","Narco Confessions","xxxxx","Onsite","2026-10-26 20:52:06","o0h1mpxkauq484qdc6xo0hbucbtg86jn"],["10","*Friends*","*30-60 mins*","*45-54*","*The live actors and performances*","5","5","5","5","5","5","","5","","","*Griselda Blanco*","Funny and interactive","","*Lucky Luciano*","I liked everything","*I didn’t know any of them*","*Not at all*","4","5","5","","5","The actors","Music","4","5","210","","787075","Narco Confessions","xxxxx","Onsite","2026-10-26 20:51:13","m9ms7ymdon6hsjjv9dm9ms7yyr5v1p23"],["10","*Friends*","*0-30 mins*","*18-24*","*Learning about famous criminal figures*, *The live actors and performances*, *The atmosphere*","5","5","5","5","5","5","","5","","","*Griselda Blanco*","","","*Griselda Blanco*","","*I knew 2*","*Yes, definitely*","","5","5","","5","","","5","5","210","","787075","Narco Confessions","xxxxx","Onsite","2026-10-26 20:50:26","w3h9qs3mcjbj30s6hw3h2ye4r29grnak"],["9","*Friends*","*0-30 mins*","*25-34*","*It was something different to do*","5","5","4","4","4","5","","5","","","*Griselda Blanco*","Everything, i wasnt expecting nothing at all and i laughed and hard a great time. Awesome expedience","","*Frank Lucas*","Nothing special, It was less funny than the others","*I knew all 4*","*Somewhat*","5","5","5","","5","The laughs, It was funnier than expected","Nothing, more cocktails","5","5","210","","787075","Narco Confessions","xxxxx","Onsite","2026-10-26 20:50:12","mvin6ehjsk3fpmvins8hle0m0x8n69zh"],["8","*Friends*","*0-30 mins*","*25-34*","The cocteils and the Actors","5","5","5","5","5","5","","4","","","*Frank Lucas*","Everything","","","","*I knew 2*","*Not at all*","4","","5","","5","","","4","5","210","","787075","Narco Confessions","xxxxx","Onsite","2026-10-26 20:50:10","gdlhjtdtfdj8nv6cy9gdlhj7lkisowfr"],["10","*Partner / Spouse*","*0-30 mins*","*25-34*","*Spending time with friends or family*","5","5","5","5","5","5","","5","","","*Pablo Escobar*","Drink","","*Griselda Blanco*","Alcohol","*I didn’t know any of them*","*Somewhat*","5","5","5","","5","Alcohol","More alcohol","5","5","210","","787075","Narco Confessions","xxxxx","Onsite","2026-10-26 20:49:36","8h9wfmirx3trrg8s5tl8h9wfmire3xm9"],["10","*Family (adult)*","*1-2 hours*","*35-44*","*I enjoy true crime or crime history*, *The atmosphere*","5","5","5","5","5","5","","5","","","*Pablo Escobar*","Everything","","*Frank Lucas*","I liked everithing","*I knew 3*","*Yes, definitely*","5","5","5","","5","Cocaine distribution","Anything","5","5","210","","787075","Narco Confessions","xxxxx","Onsite","2026-10-26 20:49:33","ydfll7qg2p6u4f69iagydfllcfkgx7yc"],["8","*Partner / Spouse*","*0-30 mins*","*25-34*","*It was something different to do*","5","4","4","4","5","4","","4","","","*Lucky Luciano*","Enthusiasm","","*Frank Lucas*","Less funny","*I knew 3*","*Yes, definitely*","4","5","4","","4","Drinks","Ice on drinks","4","5","210","","787075","Narco Confessions","xxxxx","Onsite","2026-10-26 20:49:31","qsvd01pfrvwcx51w5dqsvd0wfyu8d87r"],["0","*By myself*","*0-30 mins*","*25-34*","*The storytelling*","4","5","5","4","5","4","","1","I expected a deep dive into the characters and their motivation, not being humoristic","","*Griselda Blanco*","It felt the most authentic, cruel, not humoristic","","*Pablo Escobar*","It didnt tell anything about him nor his cruelty","*I knew 2*","*Not really*","5","1","1","*The storytelling wasn’t what I expected*","1","Griselda","More dramatic, less humoristic","1","5","210","","787075","Narco Confessions","xxxxx","Onsite","2026-10-26 20:49:07","6hxkbe1gcs61pewv6hxkbeiscnto9obk"],["8","*Friends*, *Partner / Spouse*","*0-30 mins*","*25-34*","*It was something different to do*","4","4","4","4","4","4","","4","","","*Griselda Blanco*","Very good acting","","*Frank Lucas*","","*I didn’t know any of them*","*Not really*","4","4","4","","4","","","4","5","","","","","","","2026-10-26 20:49:03","vqzrm42fy9bq29iavqzzokx2ucjovkwl"],["10","*Partner / Spouse*","*0-30 mins*","*25-34*","*It was something different to do*","5","5","5","5","5","5","","5","","","*Griselda Blanco*","","","*Frank Lucas*","","","","","","","","","","","","5","210","","787075","Narco Confessions","xxxxx","Onsite","2026-10-26 20:48:57","9s1pibj76ydy2oxzx9sseh8d13jfm4eg"],["10","*Friends*","*0-30 mins*","*25-34*","*The atmosphere*","5","5","5","5","5","5","","5","","","*Pablo Escobar*","","","*Frank Lucas*","","*I knew 3*","*Yes, definitely*","5","5","5","","5","","","5","5","210","","787075","Narco Confessions","xxxxx","Onsite","2026-10-26 20:48:51","d13emdsaedgnuaqg473xd13emd002tgv"],["6","*Partner / Spouse*, *Friends*","*0-30 mins*","*25-34*","*The live actors and performances*, *I enjoy true crime or crime history*, *The immersive theatre experience*","5","5","5","5","5","5","","3","Maybe i needed more context or background","","*Griselda Blanco*","Shes the best i love her","","*Frank Lucas*","I didnt find it too engaging","*I knew 2*","*Yes, definitely*","5","3","4","","4","The cocktails and that it was new","The engaging","5","5","210","","787075","Narco Confessions","xxxxx","Onsite","2026-10-26 20:48:26","vgsen0csfzjmo5cpvgsenzqt8p1a04o5"],["10","*Friends*","*0-30 mins*","*25-34*","*The immersive theatre experience*","5","5","5","5","5","5","","5","","","*Pablo Escobar*","","","*Pablo Escobar*","","*I knew all 4*","*Yes, definitely*","5","5","5","","5","","","5","5","210","","787075","Narco Confessions","xxxxx","Onsite","2026-10-26 20:48:20","rvmyp11fxq89eb2pec8b4rvmyp1raizr"],["10","*By myself*","*1-2 hours*","*18-24*","*The live actors and performances*","5","5","5","5","5","5","","5","","","*Lucky Luciano*","Everything","","*Griselda Blanco*","","*I knew all 4*","*Yes, definitely*","5","5","5","","5","","","5","5","210","","787075","Narco Confessions","xxxxx","Onsite","2026-10-26 20:48:16","vmkrxx0ovlzlcdu9ivmkrtrylmfz7v36"],["10","*Friends*","*0-30 mins*","*25-34*","*The storytelling*, *The live actors and performances*, *I enjoy true crime or crime history*","5","5","5","5","5","5","","5","","","*Griselda Blanco*","","","*Frank Lucas*","","*I knew 2*","*Not really*","5","5","5","","5","","","5","5","210","","787075","Narco Confessions","xxxxx","Onsite","2026-10-26 20:48:10","2lajctkvd4ihz677her2lajctkvf2crw"],["10","*Partner / Spouse*","*0-30 mins*","*18-24*","*The live actors and performances*","5","5","5","5","5","5","","5","","","*Griselda Blanco*","","","*Griselda Blanco*","","*I knew all 4*","*Yes, definitely*","5","5","5","","5","","","5","5","210","","787075","Narco Confessions","xxxxx","Onsite","2026-10-26 20:47:54","ou21k8gtgq4m4v5kvknou21k8ghpsoh5"],["10","","*0-30 mins*","*25-34*","*The live actors and performances*","5","5","5","5","5","5","","5","","","*Pablo Escobar*","","","","","*I didn’t know any of them*","*Not at all*","3","5","5","","5","","","5","5","210","","787075","Narco Confessions","xxxxx","Onsite","2026-10-26 20:47:53","4xc7z3kgqvsowlxb4xc7zpng1cwyvwdi"],["10","*Friends*","*0-30 mins*","*25-34*","*The storytelling*","5","5","5","5","5","5","","5","","","*Pablo Escobar*","La historia","","*Frank Lucas*","No entendi bien","*I knew 1*","*Yes, definitely*","5","5","5","","5","","","","5","210","","787075","Narco Confessions","xxxxx","Onsite","2026-10-26 20:46:35","5cgidi8mim778up129y3utu75cgidica"],["10","*By myself*","*30-60 mins*","*55-64*","*The storytelling*, *Learning about famous criminal figures*, *The live actors and performances*","5","5","5","5","5","5","","5","","*Cocktail 3*","","Very dynamic performance and a character I had heard of.","*Cocktail 4*","","A lot of it about Lucky Luciano who was not there.","*I knew 1*","*Somewhat*","3","5","4","","5","Learning while being entertained.","The cocktails","5","21","236","","777627","Narco Confessions: A Poured History of Criminal Empires   Friends ","","","2026-09-30 20:17:27","ku8z5hj8p9m4a4ku8z5h7tts4o015njt"],["5","*By myself*","*30-60 mins*","*25-34*","*I enjoy true crime or crime history*, *The live actors and performances*, *The storytelling*","4","2","1","3","2","4","","3","I didn’t really get the over-arching story. The individual stories were really interesting and well done, but as a whole cohesive story it didn’t really make sense","*Cocktail 1*","","","*Cocktail 3*","","I thought it was odd that a random person was added to the story, when that didn’t happen in any of the others. And you could see that actor’s main costume really obviously.  The hippo story was funny though.","*I knew 2*","*Somewhat*","4","","3","*The experience was less immersive than I expected*, I know this was just a friends and family preview, but I expected a little more polish I think. It all felt a bit thrown together. And the breaks between with the lights up killed the vibe","3","The actors were good, and their stories were genuinely interesting","The set design looked like AI, and the Brittany spears mics were weird.","3","21","236","","777627","Narco Confessions","xxxxx","Onsite","2026-09-30 19:01:39","fxpsbq42jw8m7fxpsqrs65bwyj9m9fqf"],["9","*Family (adult)*","*0-30 mins*","","","5","","5","4","4","5","Line delivery could have been better","4","More depth on the narcos lives","*Cocktail 3*","","Fun anecdotes","*Cocktail 4*","","Fun, but not technically a narco","*I knew 3*","*Somewhat*","2","5","4","","4","I enjoy stories about drug lords and empires","Story setting for characters","5","21","236","","777627","Narco Confessions","xxxxx","Onsite","2026-09-30 04:22:53","ji6k1yt8a3ntdftbji60ene7is5qi4fa"],["10","","*0-30 mins*","*45-54*","","5","4","5","","4","5","Each actor seemed well versed in their role and was engaging in their story.","5","They were solid excerpts of the character’s story and gave both comedy and drama to their dark pasts.","*Cocktail 2*","","The actor told the story with a genuine heartfelt performance","*Cocktail 1*","","All the stories were compelling, but this actor would benefit from more annunciation and projection, as it was hard to hear some of his story, but his character was spot on.","*I knew 3*","*Not at all*","3","5","5","","5","","","5","21","236","","777627","Narco Confessions","xxxxx","Onsite","2026-09-30 03:56:41","n15fi4vjumq78oxen15u5svjj0f9a5p6"],["8","*Friends*","*0-30 mins*","*25-34*","*Learning about famous criminal figures*","5","3","5","3","4","5","Everyone was a great storyteller, their delivery was excellent, and they embodied their characters well","4","","*Cocktail 3*","","This one was the funniest, but it was also the most familiar since Pablo Escobar is so well known this was the easiest to connect with","*Cocktail 4*","","I didn't really understand why this character was brought up at the beginning of the play, also the character wasn't compelling, just seemed like someone waiting for their partner to return, unlike the other characters who's stories were more interesting and focused around themselves","*I knew 1*","*Somewhat*","2","5","5","","4","I really liked how dynamic the stories were, the first was really moving and heavy, the second was quick paced and exhilarating the third was funny and interesting and the third was personable and intimate","The last character, Gay, had more presence than made sense to me, being in the introduction (also setting the stage to be 1940s but then the other characters were clearly from other decades) with nothing tying together why she was such a prominent character for the show. Also I feel like the narrator could tie the stories together somehow, rather than just introduce them as \"our next guest\"","4","21","236","","777627","Narco Confessions","xxxxx","Onsite","2026-09-30 03:42:10","bvyo5ngnu8u5x1tbvyo61ljopztqmnrd"],["4","*Friends*","*30-60 mins*","","*Learning about famous criminal figures*","1","3","4","1","3","3","Dialect was off. The accent errors took me out of the moment.","4","The stories were strong, believable and at times funny.","*Cocktail 2*","","The actress and her storyline.","*Cocktail 4*","","Again, the accent errors took away from the believability. Also…why no shoes for all of her characters? No shoes???","*I knew 3*","*Not at all*","5","2","2","","1","Honestly, not much. It wasn’t something I enjoyed. The venue smelled and I get it, Narcos, but not what I wanted. The smell made me sick.","Venue, breaks in between the sets seems long and unnecessary.","2","21","236","","777627","Narco Confessions","xxxxx","Onsite","2026-09-30 03:31:42","1k14flte8qwdpzuswp1k14flt3h4gmar"],["9","*By myself*","*0-30 mins*","*35-44*","","5","4","4","4","4","5","The actors did such a great job bringing the stories and people to life. They were captivating - even after a few drinks!","5","I learned so much about the real life people, but in a fun way. It was funny, and heartbreaking. Well done.","*Cocktail 3*","","The hippos","*Cocktail 4*","","It was a great story! I was just sad she didn’t get to see her lover at the end :)","*I knew 1*","*Not at all*","3","5","4","","4","The variety of stories.","Can’t think of anything","5","21","236","","777627","Narco Confessions","xxxxx","Onsite","2026-09-30 03:31:20","lroqy8jfasmpymwxayrr7lroqx62zmpi"],["10","*Friends*, *Partner / Spouse*","*0-30 mins*","*25-34*","","5","5","5","5","5","5","","5","","*Cocktail 2*","","","*Cocktail 4*","","","","","","","","","","","","","21","236","","777627","Narco Confessions","xxxxx","Onsite","2026-09-30 03:31:03","f77ji3e1nkzk3fbjf77j43pso9ozfp94"],["10","*Friends*","*30-60 mins*","*25-34*","","4","3","4","3","4","5","I thought they did a great job telling the story while making it fun for the crowd","5","They did a great job giving “bad guys” a lighthearted story about just trying to make it and that they aren’t necessarily bad people","*Cocktail 3*","","Felt the most interactive and did a good job of making Pablo Escobar a funny and likable individual","*Cocktail 4*","","It was still fantastic but I had to choose one and I was a little bummed not hearing lucky’s story from his prospective as well. Still loved her performance","*I knew 2*","*Not at all*","3","5","5","","5","The storytelling. It’s an interesting topic and the actors/actresses did an amazing job performing their roles. I had no idea what to expect and was very glad I came to watch","The second act was a little short. Would have loved another few minutes of her performance.","5","21","236","","777627","Narco Confessions","xxxxx","Onsite","2026-09-30 03:09:49","zcrn1epcpa95xop9ypwbfgzcrn1ezysn"],["9","*By myself*","*0-30 mins*","*55-64*","","5","3","","4","3","5","great audience interaction","5","funny and informative","*Cocktail 1*","","heartfelt","*Cocktail 4*","","I liked it! just not quite as much as the others","*I knew 1*","*Not really*","3","","4","","4","script","music seemed a bit bland","5","21","236","","777627","Narco Confessions","xxxxx","Onsite","2026-09-30 03:04:08","4wn2gzz1a7i6ikppurx64wn2g2hf34f1"],["9","*By myself*","*30-60 mins*","","","4","4","4","4","4","5","They were funny and made me care about the characters.","4","It was well written","*Cocktail 2*","","Sweet","*Cocktail 1*","","Less sweet","","","3","4","4","","4","It was different then other plays","","4","21","236","","777627","Narco Confessions","xxxxx","Onsite","2026-09-30 02:55:33","pd50lo6r5bxtlvolpd56csjtye97sd96"],["5","*Friends*","*0-30 mins*","","*Learning about famous criminal figures*","4","","4","4","4","5","","5","","*Cocktail 3*","","It was funniest","*Cocktail 4*","","Third person, different era","*I knew all 4*","*Not really*","3","5","3","","1","The uniqueness","It was more fun to hear directly from the gangsters versus a cop or moll","5","21","236","","777627","Narco Confessions","xxxxx","Onsite","2026-09-30 02:44:10","nj6z92sahtnhy2s7knj6z9w0inai7b8s"],["10","","*0-30 mins*","*25-34*","","4","","4","5","5","5","I was taken into the stories of each actor. I felt amazed by the performance","5","Felt like a historical story with some spooky elements in between","*Cocktail 3*","","Really great storyline with highs and lows","*Cocktail 1*","","Felt flat. Hard to stick with the story","*I knew 2*","*Not really*","3","5","4","","5","The art displayed around the area.","Maybe some different background sound for the actors to \"set the stage\" even if played at a lower volume","5","21","236","","777627","Narco Confessions","xxxxx","Onsite","2026-09-30 02:23:15","4bhkogkt9ewqj8fp6swi1ceyap4bhkog"],["1","*By myself*","*0-30 mins*","*25-34*","*The live actors and performances*","4","1","3","3","4","5","","1","I never got really engaged with it, felt more like a story being told and didn’t felt real at all. As an example With EAP I felt it closer and real. Being presented by a jazz band conductor with a baton made me mad, but I’m a jazz musician so that won’t happen to many. I don’t know if experimenting with dynamics would improve it or is a problem of overall credibility","","*Griselda Blanco*","The actors were incredibly good and Griselda would be a stronger contrast if the 3 before got darker or more serious.","","*Pablo Escobar*","I think having Pablo Escobar as the face we’ve seen many times before the show takes away the magic of it. He’s Pablo Escobar you don’t need an intro by anyone to get him onstage, just put a picture of his name and make him enter stronger, again contrast, make different things. Any show that’s 1:30 needs contrats to break repetition, that basic in any show","*I knew 3*","*Not really*","4","1","2","*The storytelling wasn’t what I expected*","","","","","5","210","","787075","Narco Confessions","xxxxx","Onsite","1/1/0001 0:00:00","3tgez3nofgtt0xler3e3tgez3cq25xup"],["1","*By myself*","*0-30 mins*","*25-34*","*The live actors and performances*","4","1","3","3","4","5","","1","I never got really engaged with it, felt more like a story being told and didn’t felt real at all. As an example With EAP I felt it closer and real. Being presented by a jazz band conductor with a baton made me mad, but I’m a jazz musician so that won’t happen to many. I don’t know if experimenting with dynamics would improve it or is a problem of overall credibility","","*Griselda Blanco*","The actors were incredibly good and Griselda would be a stronger contrast if the 3 before got darker or more serious.","","*Pablo Escobar*","I think having Pablo Escobar as the face we’ve seen many times before the show takes away the magic of it. He’s Pablo Escobar you don’t need an intro by anyone to get him onstage, just put a picture of his name and make him enter stronger, again contrast, make different things. Any show that’s 1:30 needs contrats to break repetition, that basic in any show","*I knew 3*","*Not really*","4","1","2","*The storytelling wasn’t what I expected*","2","Again, acting was good and logistics were handled well. Just change the script and maybe improve the overall quality of cocktails and it’s a good show","Script","3","5","210","","787075","Narco Confessions","xxxxx","Onsite","2026-10-27 10:12:46","3tgez3nofgtt0xler3e3tgez3cq25xup"]];
+
+/* ── lookups ─────────────────────────────────────────────── */
+const PLAN_MAP = {"787075":"Madrid (Spain)","777627":"Chicago (United States)"};
+const CITY_MAP = {"5":"Madrid","21":"Chicago"};
+const COUNTRY_MAP = {"210":"Spain","236":"United States"};
+const FF_PLANS = ["777627"];             /* Chicago run was the friends & family preview */
+const clean = v => String(v??"").trim().replace(/\.0$/,"");
+/* A response with no hidden fields counts as Madrid (it was submitted during the Madrid run and the Madrid tab includes it) */
+function resolveCity(r){const p=PLAN_MAP[clean(r[C.idp])];if(p)return p.split(" (")[0];return CITY_MAP[clean(r[C.c])]||"Madrid";}
+function resolveCountry(r){const p=PLAN_MAP[clean(r[C.idp])];if(p)return p.match(/\(([^)]+)\)/)[1];return COUNTRY_MAP[clean(r[C.ct])]||"Spain";}
+function resolveAudience(r){return FF_PLANS.includes(clean(r[C.idp]))||clean(r[C.c])==="21"?"Friends & family":"Public";}
+
+/* ── CSV parser ──────────────────────────────────────────── */
+function parseCSV(text){
+  const rows=[];let row=[],cell="",inQ=false;
+  for(let i=0;i<text.length;i++){
+    const ch=text[i],nx=text[i+1];
+    if(inQ){if(ch==='"'&&nx==='"'){cell+='"';i++;}else if(ch==='"')inQ=false;else cell+=ch;}
+    else{if(ch==='"')inQ=true;else if(ch===','){row.push(cell);cell="";}
+    else if(ch==='\n'||(ch==='\r'&&nx==='\n')){row.push(cell);cell="";if(row.some(c=>c.trim()))rows.push(row);row=[];if(ch==='\r')i++;}
+    else cell+=ch;}
+  }
+  if(cell||row.length){row.push(cell);if(row.some(c=>c.trim()))rows.push(row);}
+  return rows;
+}
+
+/* ── gauges ──────────────────────────────────────────────── */
+const RSEG=[{from:1,to:3.8,color:"#E24B4A"},{from:3.8,to:4.2,color:"#EF9F27"},{from:4.2,to:5,color:"#1D9E75"}];
+const CSEG=[{from:1,to:2,color:"#E24B4A"},{from:2,to:2.5,color:"#EF9F27"},{from:2.5,to:3.5,color:"#1D9E75"},{from:3.5,to:4,color:"#EF9F27"},{from:4,to:5,color:"#E24B4A"}];
+function v2a(v,mn,mx){return Math.PI-((v-mn)/(mx-mn))*Math.PI;}
+function arcD(cx,cy,r,a1,a2){
+  const x1=cx+r*Math.cos(a1),y1=cy-r*Math.sin(a1),x2=cx+r*Math.cos(a2),y2=cy-r*Math.sin(a2);
+  return `M${x1.toFixed(2)} ${y1.toFixed(2)} A${r} ${r} 0 ${Math.abs(a2-a1)>Math.PI?1:0} ${a1>a2?1:0} ${x2.toFixed(2)} ${y2.toFixed(2)}`;
+}
+function gauge(avgVal,n,segs,mn,mx,endLbls){
+  const cx=120,cy=118,r=80,sw=22;
+  const paths=segs.map(s=>`<path d="${arcD(cx,cy,r,v2a(s.from,mn,mx),v2a(s.to,mn,mx))}" fill="none" stroke="${s.color}" stroke-width="${sw}" stroke-linecap="butt"/>`).join("");
+  const tvs=mx===10?[1,2,4,6,8,9,10]:[1,2,3,4,5];
+  const ticks=tvs.map(v=>{const a=v2a(v,mn,mx),tr=r+sw+12;return `<text x="${(cx+tr*Math.cos(a)).toFixed(1)}" y="${(cy-tr*Math.sin(a)).toFixed(1)}" text-anchor="middle" dominant-baseline="middle" font-size="10" fill="#bbb">${v}</text>`;}).join("");
+  let ndl="";
+  if(avgVal!==null){const a=v2a(avgVal,mn,mx),nr=r-sw*.5-3,nx=cx+nr*Math.cos(a),ny=cy-nr*Math.sin(a),deg=(Math.PI-a)*(180/Math.PI)+90;ndl=`<polygon points="0,-10 6,0 -6,0" fill="#555" transform="translate(${nx.toFixed(1)},${ny.toFixed(1)}) rotate(${deg.toFixed(1)})"/>`;}
+  const el=endLbls?`<text x="${(cx+(r+sw+30)*Math.cos(Math.PI)).toFixed(1)}" y="${(cy-(r+sw+30)*Math.sin(Math.PI)+12).toFixed(1)}" text-anchor="middle" font-size="9" fill="#bbb">${endLbls[0]}</text><text x="${(cx+(r+sw+30)*Math.cos(0)).toFixed(1)}" y="${(cy-(r+sw+30)*Math.sin(0)+12).toFixed(1)}" text-anchor="middle" font-size="9" fill="#bbb">${endLbls[1]}</text>`:"";
+  const as=avgVal!==null?avgVal.toFixed(2):"–";
+  return `<svg viewBox="0 0 240 158" width="240" height="158">${paths}${ticks}${ndl}${el}<text x="${cx}" y="${cy-4}" text-anchor="middle" font-size="28" font-weight="600" fill="#1a1916">${as}</text><text x="${cx}" y="${cy+18}" text-anchor="middle" font-size="11" fill="#bbb">${avgVal!==null?`n = ${n}`:"no data"}</text></svg>`;
+}
+
+/* ── charts ──────────────────────────────────────────────── */
+const CR=[];
+function destroyCharts(){CR.forEach(c=>c.destroy());CR.length=0;}
+function bar(id,labels,data,color,horiz){
+  const ctx=document.getElementById(id);if(!ctx)return;
+  CR.push(new Chart(ctx,{
+    type:"bar",
+    data:{labels,datasets:[{data,backgroundColor:color||"#185FA5",borderRadius:4,borderSkipped:false}]},
+    options:{indexAxis:horiz?"y":"x",responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{x:{grid:{display:!!horiz},ticks:{color:"#7a776e",font:{size:11},maxRotation:0},beginAtZero:!!horiz},
+              y:{grid:{display:!horiz},ticks:{color:"#7a776e",font:{size:11}},beginAtZero:!horiz}}}
+  }));
+}
+
+/* ── helpers ─────────────────────────────────────────────── */
+function tryNum(v){const n=parseFloat(String(v??"").replace(/[^0-9.\-]/g,""));return isNaN(n)?null:n;}
+function avg(a){const ns=a.filter(v=>v!==null);return ns.length?ns.reduce((a,b)=>a+b,0)/ns.length:null;}
+function freq(arr){const m={};arr.forEach(v=>{if(v&&v.trim())m[v.trim()]=(m[v.trim()]||0)+1;});return m;}
+function uniq(arr){return[...new Set(arr.filter(Boolean))].sort();}
+function sorted(m,n=10){return Object.entries(m).sort((a,b)=>b[1]-a[1]).slice(0,n);}
+
+
+function opts(v){
+  const s=String(v??"").trim(); if(!s) return {found:[],other:null};
+  const found=[...s.matchAll(/\*([^*]+)\*/g)].map(m=>m[1].trim());
+  const rest=s.replace(/\*[^*]+\*/g,"").replace(/^[\s,]+|[\s,]+$/g,"").trim();
+  return {found, other: rest||null};
+}
+function catMulti(rows,i){const out=[];rows.forEach(r=>{const o=opts(r[i]);out.push(...o.found);if(o.other)out.push("Other (written in)");});return out;}
+function catSingle(rows,i){return rows.map(r=>{const o=opts(r[i]);return o.found[0]||(o.other?"Other (written in)":null);}).filter(Boolean);}
+function wrapL(s,n=24){const w=String(s).split(" "),out=[];let cur="";w.forEach(x=>{if((cur+" "+x).trim().length>n&&cur){out.push(cur);cur=x;}else cur=(cur+" "+x).trim();});if(cur)out.push(cur);return out.length>1?out:s;}
+function escapeHtml(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+
+/* ── open text translation ───────────────────────────────── */
+async function translateComment(text) {
+  try {
+    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&q=${encodeURIComponent(text)}`;
+    const res = await fetch(url);
+    if(!res.ok) return null;
+    const data = await res.json();
+    const lang = data[2];
+    if(lang === 'en') return null;
+    const translated = data[0].map(s=>s[0]).join('');
+    return translated;
+  } catch(e) { return null; }
+}
+
+async function translateColumn(btnEl, containerId) {
+  btnEl.textContent = 'Translating…';
+  btnEl.disabled = true;
+  const items = document.querySelectorAll(`#${containerId} .comi`);
+  for(const item of items) {
+    if(item.dataset.translated) continue;
+    const original = item.textContent.trim();
+    if(!original) continue;
+    const translation = await translateComment(original);
+    if(translation) {
+      item.innerHTML = `${translation}<div style="font-size:11px;color:var(--faint);margin-top:3px;font-style:italic">${original}</div>`;
+    }
+    item.dataset.translated = '1';
+  }
+  btnEl.textContent = 'Translated';
+}
+
+
+function barPair(id,labels,a,b,la,lb){
+  const ctx=document.getElementById(id);if(!ctx)return;
+  CR.push(new Chart(ctx,{type:"bar",
+    data:{labels,datasets:[{label:la,data:a,backgroundColor:"#1D9E75",borderRadius:4,borderSkipped:false},{label:lb,data:b,backgroundColor:"#E24B4A",borderRadius:4,borderSkipped:false}]},
+    options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:true,position:"bottom",labels:{color:"#7a776e",font:{size:11},boxWidth:12}}},
+      scales:{x:{grid:{display:true},ticks:{color:"#7a776e",font:{size:11},precision:0},beginAtZero:true},y:{grid:{display:false},ticks:{color:"#7a776e",font:{size:11}}}}}}));
+}
+
+/* ── column lookup by header ─────────────────────────────── */
+let ROWS=[],HDRS=[],C={},SOURCE="";
+function findCol(re,fallback,nth=0){const hits=HDRS.map((h,i)=>[String(h).replace(/\*/g,"").replace(/\s+/g," "),i]).filter(([h])=>re.test(h));return hits[nth]?hits[nth][1]:fallback;}
+function buildColumns(){
+  C={
+    rec:findCol(/would you recommend/i,0), comp:findCol(/attend the experience with anyone/i,1), travel:findCol(/how far did you travel/i,2),
+    age:findCol(/what is your age/i,3), appealed:findCol(/appealed to you most/i,4),
+    venue:findCol(/rate the venue/i,5), music:findCol(/rate the music/i,6), lighting:findCol(/rate the lighting/i,7), costumes:findCol(/rate the costumes/i,8),
+    props:findCol(/stage decoration/i,9), actors:findCol(/rate the actors/i,10), actorsWhy:findCol(/rating of the actors/i,11),
+    script:findCol(/rate the script/i,12), scriptWhy:findCol(/rating of the script/i,13),
+    favCk:findCol(/story was your favourite/i,14,0), fav:findCol(/story was your favourite/i,15,1), favWhy:findCol(/what did you like about/i,16),
+    leastCk:findCol(/story was your least favourite/i,17,0), least:findCol(/story was your least favourite/i,18,1), leastWhy:findCol(/didn't like about/i,19),
+    knew:findCol(/already familiar with/i,20), knowImp:findCol(/knowing the characters/i,21),
+    duration:findCol(/duration of the experience/i,22), vfm:findCol(/value for money/i,23), exp:findCol(/compare to your expectations/i,24),
+    expDiff:findCol(/different from what you expected/i,25), ret:findCol(/return to this experience/i,26),
+    liked:findCol(/enjoy the most/i,27), improve:findCol(/most improvement/i,28), overall:findCol(/overall quality of the event/i,29),
+    c:findCol(/^c$/,30), ct:findCol(/^ct$/,31), idp:findCol(/^idp$/,33), p:findCol(/^p$/,34), idt:findCol(/^idt$/,35), name:findCol(/^name$/,36),
+    sub:findCol(/^submitted at$/i,37), token:findCol(/^token$/i,38),
+  };
+}
+const RATING_DEFS=[{k:"actors",l:"Actors' performance"},{k:"script",l:"Script"},{k:"venue",l:"Venue"},{k:"music",l:"Music"},{k:"lighting",l:"Lighting"},{k:"costumes",l:"Costumes"},{k:"props",l:"Stage decoration & props"}];
+
+function dedupeByToken(rows){
+  const seen={},noTok=[];
+  const partial=r=>{const s=String(r[C.sub]||"").trim();return !s||s.includes("0001");};
+  rows.forEach(r=>{const t=String(r[C.token]||"").trim();if(!t){noTok.push(r);return;}if(!seen[t]||(partial(seen[t])&&!partial(r)))seen[t]=r;});
+  return [...Object.values(seen),...noTok];
+}
+
+/* ── load ────────────────────────────────────────────────── */
+function useRows(rows,src){
+  HDRS=rows[0].map(String);buildColumns();
+  ROWS=dedupeByToken(rows.slice(1).map(r=>r.map(v=>v==null?"":String(v)))).filter(r=>String(r[C.rec]||"").trim()!==""||String(r[C.token]||"").trim()!=="");
+  SOURCE=src;
+  const b=document.getElementById("src-badge");b.textContent=src;b.style.display="inline-block";
+  populateFilters();renderDashboard();if(ACTIVE_TAB==="comp")renderComparison();
+}
+async function loadData(){
+  const msg=document.getElementById("state-msg");
+  if(!SHEET_URL){useRows(SNAPSHOT,`Snapshot · ${SNAPSHOT_DATE}`);return;}
+  document.getElementById("refresh-btn").style.display="flex";
+  msg.style.display="flex";msg.innerHTML='<div class="spinner"></div><span>Loading data from Google Sheets…</span>';
+  try{const res=await fetch(SHEET_URL);if(!res.ok)throw new Error("HTTP "+res.status);const rows=parseCSV(await res.text());if(rows.length<2)throw new Error("empty");useRows(rows,"Live · Google Sheets");}
+  catch(e){useRows(SNAPSHOT,`Snapshot · ${SNAPSHOT_DATE} (live load failed)`);}
+}
+window.addEventListener("load",()=>loadData());
+
+/* ── filters ─────────────────────────────────────────────── */
+function fillSelect(selId,vals,fn){
+  const sel=document.getElementById(selId),cur=sel.value,keep=vals.includes(cur)?cur:"";
+  sel.innerHTML=`<option value="">All</option>`+vals.map(v=>`<option value="${v}"${v===keep?" selected":""}>${v}</option>`).join("");
+  sel.disabled=vals.length<=1;sel.onchange=fn;
+}
+function rerender(){renderDashboard();if(ACTIVE_TAB==="comp")renderComparison();}
+function populateFilters(){
+  function refresh(first){
+    const aud=document.getElementById("f-aud").value,country=document.getElementById("f-country").value;
+    fillSelect("f-aud",uniq(ROWS.map(resolveAudience)),()=>refresh());
+    const byAud=aud?ROWS.filter(r=>resolveAudience(r)===aud):ROWS;
+    fillSelect("f-country",uniq(byAud.map(resolveCountry)),()=>refresh());
+    const byCountry=country?byAud.filter(r=>resolveCountry(r)===country):byAud;
+    fillSelect("f-city",uniq(byCountry.map(resolveCity)),rerender);
+    if(!first)rerender();
+  }
+  refresh(true);
+}
+function geoFilter(r){
+  const aud=document.getElementById("f-aud").value,country=document.getElementById("f-country").value,city=document.getElementById("f-city").value;
+  if(aud&&resolveAudience(r)!==aud)return false;
+  if(country&&resolveCountry(r)!==country)return false;
+  if(city&&resolveCity(r)!==city)return false;
+  return true;
+}
+function filteredRows(){return ROWS.filter(geoFilter);}
+
+/* ── render ──────────────────────────────────────────────── */
+function commentList(title,items,id,translate=true){
+  return `<div class="comc">
+    <div class="comh" style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+      <span>${title} (${items.length})</span>
+      ${translate?`<button onclick="translateColumn(this,'${id}')" style="font-size:10px;padding:2px 8px;border-radius:4px;border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer">Translate</button>`:""}
+    </div>
+    <div class="coml" id="${id}">${items.map(c=>`<div class="comi">${c}</div>`).join("")||`<div class="comi" style="color:var(--faint)">No responses</div>`}</div>
+  </div>`;
+}
+function chartCard(id,title,n,note){
+  const hh=Math.max(100,n*34+40);
+  return `<div class="cc"><div class="ct">${title}</div><div style="position:relative;width:100%;height:${hh}px"><canvas id="${id}"></canvas></div>${note?`<div class="note">${note}</div>`:""}</div>`;
+}
+function centreSplit(n,el){
+  const lo=Math.round(n.filter(v=>v<=2).length/n.length*100),md=Math.round(n.filter(v=>v===3).length/n.length*100),hi=100-lo-md;
+  return `<div class="split"><span style="color:${lo>=25?"#A32D2D":"var(--muted)"}">${lo}% ${el[0].toLowerCase()}</span> · ${md}% just right · <span style="color:${hi>=25?"#A32D2D":"var(--muted)"}">${hi}% ${el[1].toLowerCase()}</span></div>`;
+}
+const ordered=(vals,order)=>{const f=freq(vals);const known=order.filter(k=>f[k]).map(k=>[k,f[k]]);const rest=Object.entries(f).filter(([k])=>!order.includes(k)).sort((a,b)=>b[1]-a[1]);return [...known,...rest];};
+
+function renderDashboard(){
+  try{
+  destroyCharts();
+  const rows=filteredRows();
+  document.getElementById("resp-count").textContent=`${rows.length} response${rows.length!==1?"s":""}`;
+  document.getElementById("resp-count").style.display="inline-block";
+  const audSel=document.getElementById("f-aud").value;
+  document.getElementById("dash-sub").textContent=`Post-experience survey · ${rows.length} responses${audSel?" · "+audSel:""}`;
+
+  const col=i=>rows.map(r=>r[i]??"");
+  const nums=i=>col(i).map(tryNum).filter(v=>v!==null);
+  const ga=i=>{const n=nums(i);return{a:avg(n),n:n.length};};
+  const texts=i=>col(i).map(v=>String(v).trim()).filter(Boolean).map(escapeHtml);
+  const unit=s=>`<span style="font-size:16px;font-weight:400;color:var(--faint)">${s}</span>`;
+
+  const rn=nums(C.rec),npsN=rn.length;
+  const pro=rn.filter(v=>v>=9).length,pas=rn.filter(v=>v>=7&&v<=8).length,det=rn.filter(v=>v<=6).length;
+  const npsScore=npsN?Math.round(((pro-det)/npsN)*100):null;
+  const recAvg=avg(rn);
+  const ov=ga(C.overall),vfm=ga(C.vfm),ex=ga(C.exp),ret=ga(C.ret);
+  const ffN=rows.filter(r=>resolveAudience(r)==="Friends & family").length;
+
+  let h="";
+  if(ffN&&ffN<rows.length)h+=`<div class="ff-banner"><b>Includes ${ffN} friends &amp; family responses</b> from the Chicago preview. Set Audience to “Public” to see paying customers only.</div>`;
+  h+=`<div class="kpi-strip">`;
+  if(npsScore!==null)h+=`<div class="kpi"><div class="kpi-label">NPS</div><div class="kpi-value" style="color:${metricColor(npsScore,"nps")}">${npsScore>0?"+":""}${npsScore}</div><div class="kpi-sub">${npsN} responses</div></div>`;
+  h+=`<div class="kpi"><div class="kpi-label">Total responses</div><div class="kpi-value">${rows.length}</div><div class="kpi-sub">${uniq(rows.map(resolveCity)).join(" · ")}</div></div>`;
+  if(recAvg!==null)h+=`<div class="kpi"><div class="kpi-label">Recommend</div><div class="kpi-value" style="color:${metricColor(recAvg,"rec")}">${recAvg.toFixed(1)}${unit("/10")}</div><div class="kpi-sub">n = ${npsN}</div></div>`;
+  if(ov.a!==null)h+=`<div class="kpi"><div class="kpi-label">Overall quality</div><div class="kpi-value" style="color:${metricColor(ov.a)}">${ov.a.toFixed(1)}${unit("/5")}</div><div class="kpi-sub">n = ${ov.n}</div></div>`;
+  if(vfm.a!==null)h+=`<div class="kpi"><div class="kpi-label">Value for money</div><div class="kpi-value" style="color:${metricColor(vfm.a)}">${vfm.a.toFixed(1)}${unit("/5")}</div><div class="kpi-sub">n = ${vfm.n}</div></div>`;
+  h+=`</div>`;
+
+  if(npsN){
+    const pp=Math.round(pro/npsN*100),pap=Math.round(pas/npsN*100),dp=100-pp-pap;
+    h+=`<div class="nps-card"><div class="ct">NPS breakdown</div><div class="nps-bar">
+      ${det?`<div class="nps-seg" style="width:${dp}%;background:#A32D2D">${det}</div>`:""}${pas?`<div class="nps-seg" style="width:${pap}%;background:#BA7517">${pas}</div>`:""}${pro?`<div class="nps-seg" style="width:${pp}%;background:#1D9E75">${pro}</div>`:""}
+      </div><div class="nps-legs"><span style="color:#A32D2D">Detractors (0–6) · ${dp}%</span><span style="color:#BA7517">Passives (7–8) · ${pap}%</span><span style="color:#1D9E75">Promoters (9–10) · ${pp}%</span></div></div>`;
+  }
+
+  h+=`<div class="sh">Overview</div><div class="gg">`;
+  if(ov.a!==null)h+=`<div class="gc"><div class="gl">Overall quality of the event</div>${gauge(ov.a,ov.n,RSEG,1,5,null)}</div>`;
+  if(ex.a!==null)h+=`<div class="gc"><div class="gl">Experience vs expectations</div>${gauge(ex.a,ex.n,RSEG,1,5,null)}</div>`;
+  if(ret.a!==null)h+=`<div class="gc"><div class="gl">Likelihood to return</div>${gauge(ret.a,ret.n,RSEG,1,5,null)}</div>`;
+  const dn=nums(C.duration);
+  if(dn.length)h+=`<div class="gc"><div class="gl">Duration (3 = just right)</div>${gauge(avg(dn),dn.length,CSEG,1,5,["Too short","Too long"])}${centreSplit(dn,["Too short","Too long"])}</div>`;
+  h+=`</div>`;
+  const expDiff=sorted(freq(catMulti(rows,C.expDiff)),8);
+  if(expDiff.length)h+=`<div class="cg" style="margin-top:14px">${chartCard("expdiff","What was different from what they expected",expDiff.length,"Multi-select, asked to those who rated the experience below their expectations.")}</div>`;
+
+  h+=`<div class="sh">Ratings</div><div class="gg">`;
+  RATING_DEFS.forEach(({k,l})=>{const n=nums(C[k]);if(n.length)h+=`<div class="gc"><div class="gl">${l}</div>${gauge(avg(n),n.length,RSEG,1,5,null)}</div>`;});
+  h+=`</div>`;
+  h+=`<div class="og og-2" style="margin-top:14px">${commentList("About their actors rating",texts(C.actorsWhy),"ol-act")}${commentList("About their script rating",texts(C.scriptWhy),"ol-scr")}</div>`;
+
+  /* Stories */
+  const STORY=["Griselda Blanco","Pablo Escobar","Lucky Luciano","Frank Lucas"];
+  const favF=freq(catSingle(rows,C.fav)),leastF=freq(catSingle(rows,C.least));
+  const sLabels=STORY.filter(s=>favF[s]||leastF[s]).concat(Object.keys({...favF,...leastF}).filter(k=>!STORY.includes(k)));
+  const favCk=freq(catSingle(rows,C.favCk)),leastCk=freq(catSingle(rows,C.leastCk));
+  const ckLabels=uniq([...Object.keys(favCk),...Object.keys(leastCk)]);
+  h+=`<div class="sh">The stories</div><div class="cg">`;
+  if(sLabels.length)h+=`<div class="cc"><div class="ct">Favourite vs least favourite story</div><div style="position:relative;width:100%;height:${Math.max(160,sLabels.length*52+60)}px"><canvas id="spair"></canvas></div></div>`;
+  if(ckLabels.length)h+=`<div class="cc"><div class="ct">Favourite vs least favourite (F&amp;F version)</div><div style="position:relative;width:100%;height:${Math.max(160,ckLabels.length*52+60)}px"><canvas id="ckpair"></canvas></div><div class="note">The friends &amp; family survey asked by cocktail number rather than character, so these can't be merged with the chart beside it.</div></div>`;
+  const knew=ordered(catSingle(rows,C.knew),["I didn’t know any of them","I knew 1","I knew 2","I knew 3","I knew all 4"]);
+  const knowImp=ordered(catSingle(rows,C.knowImp),["Yes, definitely","Somewhat","Not really","Not at all"]);
+  h+=chartCard("knew","Characters they already knew",knew.length);
+  h+=chartCard("knowimp","Is knowing the characters important to enjoy it?",knowImp.length);
+  h+=`</div>`;
+  h+=`<div class="og og-2" style="margin-top:14px">${commentList("What they liked about their favourite",texts(C.favWhy),"ol-fav")}${commentList("What they didn't like about their least favourite",texts(C.leastWhy),"ol-least")}</div>`;
+
+  /* Open */
+  h+=`<div class="sh">Open responses</div><div class="og og-2">${commentList("What they enjoyed most",texts(C.liked),"ol-liked")}${commentList("What needs the most improvement",texts(C.improve),"ol-improve")}</div>`;
+
+  /* Audience */
+  const AGE=["18-24","25-34","35-44","45-54","55-64","65+"],TRAVEL=["0-30 mins","30-60 mins","1-2 hours","2+ hours"];
+  const audDefs=[
+    {id:"aud0",l:"Who they came with",f:sorted(freq(catMulti(rows,C.comp)),8),note:"Multi-select."},
+    {id:"aud1",l:"Age group",f:ordered(catSingle(rows,C.age),AGE)},
+    {id:"aud2",l:"Travel time",f:ordered(catSingle(rows,C.travel),TRAVEL)},
+    {id:"aud3",l:"What appealed most",f:sorted(freq(catMulti(rows,C.appealed)),10),note:"Multi-select."},
+  ];
+  h+=`<div class="sh">Audience</div><div class="cg">`;
+  audDefs.forEach(({id,l,f,note})=>{h+=chartCard(id,l,f.length,note);});
+  h+=`</div>`;
+  h+=`<div class="last-updated">${SOURCE} · rendered ${new Date().toLocaleString()}</div>`;
+
+  const dash=document.getElementById("dashboard");
+  dash.innerHTML=h;document.getElementById("state-msg").style.display="none";
+  dash.style.display=ACTIVE_TAB==="dash"?"block":"none";
+
+  if(expDiff.length)bar("expdiff",expDiff.map(([k])=>wrapL(k,30)),expDiff.map(([,v])=>v),"#185FA5",true);
+  if(sLabels.length)barPair("spair",sLabels,sLabels.map(l=>favF[l]||0),sLabels.map(l=>leastF[l]||0),"Favourite","Least favourite");
+  if(ckLabels.length)barPair("ckpair",ckLabels,ckLabels.map(l=>favCk[l]||0),ckLabels.map(l=>leastCk[l]||0),"Favourite","Least favourite");
+  bar("knew",knew.map(([k])=>k),knew.map(([,v])=>v),"#185FA5",true);
+  bar("knowimp",knowImp.map(([k])=>k),knowImp.map(([,v])=>v),"#185FA5",true);
+  audDefs.forEach(({id,f})=>bar(id,f.map(([k])=>wrapL(k)),f.map(([,v])=>v),"#185FA5",true));
+  }catch(err){
+    const m=document.getElementById("state-msg");
+    m.innerHTML=`<div style="color:#A32D2D;font-weight:500">Render error: ${err.message}</div><pre style="font-size:11px;color:#7a776e;max-width:700px;white-space:pre-wrap;margin-top:8px">${err.stack}</pre>`;
+    m.style.display="flex";m.style.flexDirection="column";m.style.gap="8px";document.getElementById("dashboard").style.display="none";
+  }
+}
+
+let ACTIVE_TAB="dash";
+function switchTab(tab){
+  ACTIVE_TAB=tab;
+  ["dash","comp"].forEach(t=>{document.getElementById("tab-"+t).style.background=tab===t?"var(--text)":"var(--surface)";document.getElementById("tab-"+t).style.color=tab===t?"var(--surface)":"var(--muted)";});
+  document.getElementById("dashboard").style.display=tab==="dash"?"block":"none";
+  document.getElementById("comparison").style.display=tab==="comp"?"block":"none";
+  if(tab==="comp"&&ROWS.length)renderComparison();
+}
+
+function metricColor(val, type) {
+  if(val===null) return '#b8b5ad';
+  if(type==='nps')    return val>=50?'#1D9E75':val>=0?'#EF9F27':'#E24B4A';
+  if(type==='rec')    return val>=9?'#1D9E75':val>=7?'#EF9F27':'#E24B4A';
+  if(type==='centre') {
+    // 3 is perfect, green 2.5-3.5, amber 2-2.5 and 3.5-4, red outside
+    const d = Math.abs(val - 3);
+    return d<=0.5?'#1D9E75':d<=1?'#EF9F27':'#E24B4A';
+  }
+  // standard 1-5 higher is better
+  return val>=4.2?'#1D9E75':val>=3.8?'#EF9F27':'#E24B4A';
+}
+
+
+  function relColor(val, allVals, isCentre, isNps, isRec) {
+    if(val===null) return {bg:'transparent',fg:'var(--faint)'};
+    const valid=allVals.filter(v=>v!==null);
+    if(valid.length<2) return {bg:'var(--bg)',fg:'var(--text)'};
+
+    // Absolute thresholds
+    function isGood(v)  {
+      if(isCentre) return Math.abs(v-3)<=0.5;
+      if(isNps)    return v>=50;
+      if(isRec)    return v>=8;   // 8-10 = green
+      return v>=4.2;
+    }
+    function isOk(v) {
+      if(isCentre) return Math.abs(v-3)<=1;
+      if(isNps)    return v>=0;
+      if(isRec)    return v>=6;   // 6-7 = amber
+      return v>=3.8;
+    }
+
+    const anyGood  = valid.some(isGood);
+    const anyBad   = valid.some(v=>!isOk(v));
+
+    // Relative score within group
+    const score = v => isCentre ? -Math.abs(v-3) : v;
+    const scores = valid.map(score);
+    const mn=Math.min(...scores), mx=Math.max(...scores);
+    const t = mx===mn ? 0.5 : (score(val)-mn)/(mx-mn); // 0=worst, 1=best
+
+    let r,g,b;
+    if(!anyGood) {
+      // All bad -- red spectrum only (dark red to light red)
+      const u = t; // 0=darkest red, 1=lightest red
+      r=Math.round(180+u*30); g=Math.round(60+u*80); b=Math.round(60+u*80);
+    } else if(!anyBad) {
+      // All good -- green spectrum only (light green to dark green)
+      const u = t;
+      r=Math.round(130-u*100); g=Math.round(150+u*50); b=Math.round(100+u*17);
+    } else {
+      // Mixed -- full red/amber/green but capped by absolute threshold
+      if(isGood(val)) {
+        // Green zone: lightest green (just above threshold) to darkest green (best)
+        const greenVals = valid.filter(isGood);
+        const gScores = greenVals.map(score);
+        const gMn=Math.min(...gScores), gMx=Math.max(...gScores);
+        const gt = gMx===gMn ? 1 : (score(val)-gMn)/(gMx-gMn);
+        r=Math.round(100-gt*70); g=Math.round(158+gt*42); b=Math.round(100+gt*17);
+      } else if(isOk(val)) {
+        // Amber zone
+        r=239; g=159; b=39;
+      } else {
+        // Red zone: light red (just below ok) to dark red (worst)
+        const badVals = valid.filter(v=>!isOk(v));
+        const bScores = badVals.map(score);
+        const bMn=Math.min(...bScores), bMx=Math.max(...bScores);
+        const bt = bMx===bMn ? 0 : (score(val)-bMn)/(bMx-bMn);
+        r=Math.round(220-bt*40); g=Math.round(80+bt*40); b=Math.round(74+bt*40);
+      }
+    }
+    const brightness = 0.299*r + 0.587*g + 0.114*b;
+    const fg = brightness < 140 ? '#fff' : '#333';
+    return {bg:`rgb(${r},${g},${b})`,fg};
+  }
+
+  function fmtVal(val, isNps) {
+    if(val===null) return '–';
+    if(isNps) return (val>0?'+':'')+val;
+    return val.toFixed(1);
+  }
+
+
+const metricDefs=[
+  {key:"nps",label:"NPS",isNps:true},{key:"rec",label:"Rec /10",isRec:true},{key:"overall",label:"Overall"},{key:"vfm",label:"VFM /5"},
+  {key:"exp",label:"Expectations"},{key:"ret",label:"Return"},{key:"actors",label:"Actors"},{key:"script",label:"Script"},
+  {key:"venue",label:"Venue"},{key:"music",label:"Music"},{key:"lighting",label:"Lighting"},{key:"costumes",label:"Costumes"},{key:"props",label:"Props"},
+  {key:"duration",label:"Duration",centre:true},
+];
+function calcMetrics(rows){
+  const n=i=>rows.map(r=>tryNum(r[i])).filter(v=>v!==null);
+  const rn=n(C.rec),pro=rn.filter(v=>v>=9).length,det=rn.filter(v=>v<=6).length;
+  const m={nps:rn.length?Math.round(((pro-det)/rn.length)*100):null,rec:avg(rn),count:rows.length};
+  metricDefs.filter(d=>!d.isNps&&!d.isRec).forEach(d=>{m[d.key]=avg(n(C[d.key]));});
+  return m;
+}
+function renderComparison(){
+  const groups={};
+  ROWS.forEach(r=>{if(!geoFilter(r))return;const k=resolveCity(r)+"|"+resolveAudience(r);(groups[k]=groups[k]||[]).push(r);});
+  const list=Object.entries(groups).map(([k,rows])=>{const [city,aud]=k.split("|");return {city,aud,country:resolveCountry(rows[0]),m:calcMetrics(rows)};}).sort((a,b)=>(b.m.nps??-999)-(a.m.nps??-999));
+  if(!list.length){document.getElementById("comparison").innerHTML='<p style="padding:40px;color:var(--muted);text-align:center">No data.</p>';return;}
+  const fmtVal=(v,isNps)=>v===null?"–":isNps?(v>0?"+":"")+v:v.toFixed(1);
+  let t=`<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;margin-bottom:16px;font-size:13px;line-height:1.6">Madrid is the public run. Chicago was a friends &amp; family preview, so its scores are likely to be kinder than a paying audience's. Use it as a rough comparison only.</div>`;
+  t+=`<div style="overflow-x:auto;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius)"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="border-bottom:2px solid var(--border)">
+    <th style="text-align:left;padding:10px 14px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)">City</th><th style="padding:10px 8px;font-size:11px;font-weight:600;text-transform:uppercase;color:var(--muted)">n</th>`;
+  metricDefs.forEach(m=>{t+=`<th style="text-align:center;padding:10px 8px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);white-space:nowrap">${m.label}</th>`;});
+  t+=`</tr></thead><tbody>`;
+  list.forEach(p=>{
+    t+=`<tr style="border-bottom:1px solid var(--border)"><td style="padding:10px 14px;font-weight:500;white-space:nowrap">${p.city}<br><span style="font-size:11px;color:var(--faint);font-weight:400">${p.country} · ${p.aud}</span></td><td style="padding:10px 8px;text-align:center;color:var(--muted);font-size:12px">${p.m.count}</td>`;
+    metricDefs.forEach(m=>{const v=p.m[m.key];const {bg,fg}=relColor(v,list.map(q=>q.m[m.key]),!!m.centre,!!m.isNps,!!m.isRec);t+=`<td style="padding:10px 8px;text-align:center;font-weight:600;background:${bg};color:${fg}">${fmtVal(v,m.isNps)}</td>`;});
+    t+=`</tr>`;
+  });
+  t+=`</tbody></table></div><div style="font-size:11px;color:var(--muted);text-align:right;margin-top:10px">Duration: 3 = just right</div>`;
+  document.getElementById("comparison").innerHTML=t;
+}
+</script>
+</body>
+</html>
